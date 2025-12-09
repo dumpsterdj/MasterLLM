@@ -6,7 +6,7 @@ from io import BytesIO
 from typing import Dict, Any, Tuple
 
 import streamlit as st
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from ollama import Client
 
 # PDF export
@@ -17,7 +17,7 @@ except ImportError:
     HAS_FPDF = False
 
 # --- SETUP ---
-load_dotenv()
+# load_dotenv()
 
 st.set_page_config(
     page_title="djGPT",
@@ -47,7 +47,8 @@ st.markdown("""
 
 # --- ENV & CLIENT ---
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "https://ollama.com")
-OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY") or st.secrets.get("OLLAMA_API_KEY")
+
 
 if not OLLAMA_API_KEY:
     st.error("❌ OLLAMA_API_KEY not found in .env")
