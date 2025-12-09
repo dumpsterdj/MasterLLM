@@ -185,6 +185,21 @@ with st.sidebar:
         st.session_state.last_comparison = None
         st.rerun()
 
+# ---------- CLIENT (depends on backend) ----------
+if backend_mode.startswith("Cloud"):
+    if not OLLAMA_API_KEY:
+        st.error("Cloud backend selected but OLLAMA_API_KEY is missing.")
+        st.stop()
+    client = Client(
+        host=OLLAMA_HOST,
+        headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
+    )
+else:
+    # Note: Local Ollama won't work on Streamlit Cloud,
+    # this is only meaningful when you run djGPT on your own machine.
+    client = Client(host="http://localhost:11434")
+
+
 # --- UTILS ---
 def similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b).ratio()
@@ -772,4 +787,5 @@ if prompt:
         "role": "assistant",
         "content": st.session_state.last_comparison,
     })
+
 
