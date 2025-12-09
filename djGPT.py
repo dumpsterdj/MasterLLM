@@ -46,18 +46,40 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- ENV & CLIENT ---
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "https://ollama.com")
-OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY") or st.secrets.get("OLLAMA_API_KEY")
+# OLLAMA_HOST = os.getenv("OLLAMA_HOST", "https://ollama.com")
+# OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY") or st.secrets.get("OLLAMA_API_KEY")
+# ---------- ENV ----------
+DEFAULT_HOST = "https://ollama.com"
 
-
-if not OLLAMA_API_KEY:
-    st.error("❌ OLLAMA_API_KEY not found in .env")
-    st.stop()
-
-client = Client(
-    host=OLLAMA_HOST,
-    headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
+OLLAMA_HOST = (
+    os.getenv("OLLAMA_HOST")
+    or st.secrets.get("OLLAMA_HOST", DEFAULT_HOST)
 )
+
+OLLAMA_API_KEY = (
+    os.getenv("OLLAMA_API_KEY")
+    or st.secrets.get("OLLAMA_API_KEY", "")
+)
+
+if backend_mode.startswith("Cloud"):
+    if not OLLAMA_API_KEY:
+        st.error("Cloud backend selected but OLLAMA_API_KEY is missing.")
+        st.stop()
+    client = Client(
+        host=OLLAMA_HOST,
+        headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
+    )
+else:
+    client = Client(host="http://localhost:11434")
+
+# if not OLLAMA_API_KEY:
+#     st.error("❌ OLLAMA_API_KEY not found in .env")
+#     st.stop()
+
+# client = Client(
+#     host=OLLAMA_HOST,
+#     headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
+# )
 
 # --- MODELS & CAPABILITIES ---
 ALL_MODELS = [
@@ -750,3 +772,4 @@ if prompt:
         "role": "assistant",
         "content": st.session_state.last_comparison,
     })
+
