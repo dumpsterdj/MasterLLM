@@ -215,7 +215,7 @@ with st.sidebar:
 
     backend_mode = st.radio(
         "Backend",
-        ["Cloud (ollama.com)", "Local Ollama (localhost)"],
+        ["Cloud ", "Local Indexing"],
         index=0,
     )
 
@@ -726,3 +726,4 @@ if prompt:
             }
             st.session_state.messages.append({"role": "assistant", "content": msg_payload})
             st.rerun()
+
