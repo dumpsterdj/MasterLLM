@@ -178,15 +178,26 @@ OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY") or st.secrets.get("OLLAMA_API_KEY",
 # ---------------- Models ----------------
 ALL_MODELS = [
     "gpt-oss:120b-cloud",
-    "ministral-3:14b-cloud",
+    "gemini-3-flash-preview:cloud",
     "deepseek-v3.1:671b-cloud",
     "qwen3-vl:235b-cloud",
     "qwen3-coder:480b-cloud",
     "gemma3:27b-cloud",
+    "nemotron-3-nano:30b-cloud",
+    "ministral-3:14b-cloud",
+    "devstral-small-2:24b-cloud",
+    "devstral-2:123b-cloud",
+    "gemini-3-pro-preview:latest",
 ]
 
-VISION_MODELS = {"qwen3-vl:235b-cloud"}
-CODER_MODELS = {"qwen3-coder:480b-cloud"}
+VISION_MODELS = {"qwen3-vl:235b-cloud",
+                 "devstral-small-2:24b-cloud",
+                 "ministral-3:14b-cloud",
+                 "gemma3:27b-cloud",}
+CODER_MODELS = {"qwen3-coder:480b-cloud",
+                "devstral-small-2:24b-cloud",
+                "devstral-2:123b-cloud",
+                }
 
 
 def supports_vision(model: str) -> bool:
@@ -200,8 +211,55 @@ def looks_like_code(prompt: str) -> bool:
     code_keywords = ["code", "python", "c++", "java", "loop", "function", "class", "bug", "error"]
     return any(k in p for k in code_keywords) or "```" in prompt
 
+# --- NEW HELPER: Callback for input submission ---
+def handle_prompt_submit():
+    """
+    Callback that runs BEFORE the script reruns.
+    Safe place to update session_state widgets.
+    """
+    prompt = st.session_state.user_prompt # Access via key
+    
+    if looks_like_code(prompt):
+        # Calculate desired coder models
+        coder_models = [m for m in ALL_MODELS if m in CODER_MODELS]
+        
+        # Check current selection
+        current_selection = st.session_state.get("selected_models_state", [])
+        
+        # Only update if different (prevents unnecessary state changes)
+        if set(current_selection) != set(coder_models):
+            st.session_state.selected_models_state = coder_models
+            st.session_state.show_code_toast = True
+
+def auto_select_coding_models(
+    prompt: str,
+    available_models: List[str]
+) -> List[str]:
+    """
+    If prompt looks like code, auto-select coding models
+    """
+    if not prompt or not looks_like_code(prompt):
+        return []
+
+    return [
+        m for m in available_models
+        if m in CODER_MODELS
+    ]
+
 
 # ---------------- Session state ----------------
+# State for keeping track of selected models via Sidebar
+if "selected_models_state" not in st.session_state:
+    st.session_state.selected_models_state = ALL_MODELS[:3]
+
+# Toast Flag
+if "show_code_toast" not in st.session_state:
+    st.session_state.show_code_toast = False
+    
+# State for prompting auto-rerun
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
+    
 if "messages" not in st.session_state:
     st.session_state.messages: List[Dict[str, Any]] = []
 
@@ -223,11 +281,18 @@ with st.sidebar:
 
     available_models = [m for m in ALL_MODELS if supports_vision(m)] if uploaded_image else ALL_MODELS
 
+    default_models = (
+        st.session_state.get("auto_selected_models")
+        or available_models[:3]
+    )
+
+    # BINDING TO SESSION STATE via 'key'
     selected_models = st.multiselect(
         "Select models",
         options=available_models,
-        default=available_models[:3],
+        key="selected_models_state" 
     )
+
 
     conversation_mode = st.radio(
         "Mode",
@@ -556,25 +621,37 @@ for msg in st.session_state.messages:
             else:
                 st.markdown(content)
 
-# --- Chat Input ---
-prompt = st.chat_input("Ask your question")
+
+# --- Chat Input Logic ---
+
+# 1. Handle Toast Notification (runs immediately after reload)
+if st.session_state.get("show_code_toast", False):
+    st.toast("💻 Code detected! Switching to Coder Models...", icon="🔄")
+    st.session_state.show_code_toast = False
+
+# 2. Input Widget
+# The 'on_submit' fires the callback BEFORE the app reruns, fixing the API Exception
+prompt = st.chat_input("Ask your question", key="user_prompt", on_submit=handle_prompt_submit)
 
 if prompt:
+    # Validation
     if not selected_models:
         st.error("Select at least one model.")
         st.stop()
 
+    # Save to history
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.session_state.plain_history.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Prepare execution
     image_path = prepare_image_file(uploaded_image)
     history_to_send = st.session_state.plain_history[-10:]
-
     live_container = st.container()
 
+    # --- Mode Logic ---
     if conversation_mode == "Debate":
         if not baseline_model:
             st.error("Baseline model required for debate.")
@@ -708,7 +785,6 @@ if prompt:
     <div class="model-body">{display_text}</div>
     <div class="model-meta">{meta_str}</div>
 </div>"""
-                card_placeholder.empty()
                 card_placeholder.markdown(card_html, unsafe_allow_html=True)
             
             # Save results
@@ -726,4 +802,3 @@ if prompt:
             }
             st.session_state.messages.append({"role": "assistant", "content": msg_payload})
             st.rerun()
-
