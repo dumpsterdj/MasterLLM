@@ -176,28 +176,9 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST") or st.secrets.get("OLLAMA_HOST", DEFAULT_
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY") or st.secrets.get("OLLAMA_API_KEY", "")
 
 # ---------------- Models ----------------
-ALL_MODELS = [
-    "gpt-oss:120b-cloud",
-    "gemini-3-flash-preview:cloud",
-    "deepseek-v3.1:671b-cloud",
-    "qwen3-vl:235b-cloud",
-    "qwen3-coder:480b-cloud",
-    "gemma3:27b-cloud",
-    "nemotron-3-nano:30b-cloud",
-    "ministral-3:14b-cloud",
-    "devstral-small-2:24b-cloud",
-    "devstral-2:123b-cloud",
-    "gemini-3-pro-preview:latest",
-]
-
-VISION_MODELS = {"qwen3-vl:235b-cloud",
-                 "devstral-small-2:24b-cloud",
-                 "ministral-3:14b-cloud",
-                 "gemma3:27b-cloud",}
-CODER_MODELS = {"qwen3-coder:480b-cloud",
-                "devstral-small-2:24b-cloud",
-                "devstral-2:123b-cloud",
-                }
+ALL_MODELS = os.getenv("ALL_MODELS", "").split(",")
+VISION_MODELS = set(os.getenv("VISION_MODELS", "").split(","))
+CODER_MODELS = set(os.getenv("CODER_MODELS", "").split(","))
 
 
 def supports_vision(model: str) -> bool:
@@ -802,3 +783,4 @@ if prompt:
             }
             st.session_state.messages.append({"role": "assistant", "content": msg_payload})
             st.rerun()
+
