@@ -175,7 +175,7 @@ DEFAULT_HOST = "https://ollama.com"
 OLLAMA_HOST = os.getenv("OLLAMA_HOST") or st.secrets.get("OLLAMA_HOST", DEFAULT_HOST)
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY") or st.secrets.get("OLLAMA_API_KEY", "")
 
-# ---------------- Models ----------------
+
 ALL_MODELS = os.getenv("ALL_MODELS", "").split(",")
 VISION_MODELS = set(os.getenv("VISION_MODELS", "").split(","))
 CODER_MODELS = set(os.getenv("CODER_MODELS", "").split(","))
@@ -783,4 +783,3 @@ if prompt:
             }
             st.session_state.messages.append({"role": "assistant", "content": msg_payload})
             st.rerun()
-
